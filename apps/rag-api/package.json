@@ -1,5 +1,5 @@
 {
-  "name": "@yourorg/rag-api",
+  "name": "@kinetic/rag-api",
   "private": true,
   "type": "module",
   "scripts": {
