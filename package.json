@@ -1,0 +1,6 @@
+{
+  "name": "rag-backend",
+  "private": true,
+  "packageManager": "pnpm@9",
+  "workspaces": ["apps/*", "packages/*", "migrations"]
+}
