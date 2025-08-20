@@ -15,7 +15,10 @@ app.register(documentsRoutes);
 app.register(storageRoutes);
 
 if (require.main === module) {
-  app.listen({ port: process.env.PORT ? Number(process.env.PORT) : 8080, host: "0.0.0.0" });
+  app.listen({
+    port: process.env.PORT ? Number(process.env.PORT) : 8080,
+    host: "0.0.0.0"
+  });
 }
 
 export default app;
