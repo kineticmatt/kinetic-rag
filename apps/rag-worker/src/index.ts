@@ -1,3 +1,5 @@
+import dns from "node:dns";
+dns.setDefaultResultOrder("ipv4first");
 import { lpop } from "./redis.js";
 import { processDoc } from "./processDoc.js";
 
