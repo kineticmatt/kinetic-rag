@@ -1,5 +1,5 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
-import { pool, setSessionVars } from "./db.js";
+import { query, setSessionVars } from "./db.js";
 import argon2 from "argon2";
 
 function parseBearer(req: FastifyRequest): string | null {
@@ -27,7 +27,7 @@ export async function authGuard(req: FastifyRequest, reply: FastifyReply) {
   const keyId = parseKeyId(apiKey);
   if (!keyId) return reply.code(401).send({ error: { code: "BAD_KEY_FORMAT", message: "Malformed API key" }});
 
-  const { rows } = await pool.query(
+  const { rows } = await query(
     `select id, tenant_id, key_hash, revoked_at
      from api_keys
      where id = $1`,

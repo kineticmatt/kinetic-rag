@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { pool } from "../db.js";
+import { query } from "../db.js";
 import { randomUUID } from "crypto";
 import argon2 from "argon2";
 
@@ -18,7 +18,7 @@ export default async function adminRoutes(app: FastifyInstance) {
     requireAdminSecret(req.headers as any);
     const { slug, name } = (req.body as any) || {};
     if (!slug || !name) return reply.code(400).send({ error: { code: "BAD_INPUT", message: "slug and name required" }});
-    const r = await pool.query(
+    const r = await query(
       `insert into tenants (slug, name) values ($1, $2) returning id, slug, name`,
       [slug, name]
     );
@@ -37,7 +37,7 @@ export default async function adminRoutes(app: FastifyInstance) {
     const plaintext = `rk_${keyId}_${rand}`;
 
     const hash = await argon2.hash(plaintext);
-    const r = await pool.query(
+    const r = await query(
       `insert into api_keys (id, tenant_id, name, key_hash) values ($1, $2, $3, $4)
        returning id, tenant_id, name, created_at`,
       [keyId, tenant_id, name, hash]
@@ -49,7 +49,7 @@ export default async function adminRoutes(app: FastifyInstance) {
   app.get("/admin/keys", async (req, reply) => {
     requireAdminSecret(req.headers as any);
     const tenant_id = (req.query as any)?.tenant_id || null;
-    const r = await pool.query(
+    const r = await query(
       `select id, tenant_id, name, created_at, revoked_at from api_keys
        where ($1::uuid is null or tenant_id = $1)
        order by created_at desc`,
@@ -63,7 +63,7 @@ export default async function adminRoutes(app: FastifyInstance) {
     requireAdminSecret(req.headers as any);
     const { id } = (req.body as any) || {};
     if (!id) return reply.code(400).send({ error: { code: "BAD_INPUT", message: "id required" }});
-    await pool.query(`update api_keys set revoked_at = now() where id = $1`, [id]);
+    await query(`update api_keys set revoked_at = now() where id = $1`, [id]);
     reply.send({ ok: true });
   });
 }
