@@ -1,11 +1,14 @@
-import { authGuard } from "../auth.js";
-import { enforceRateLimit } from "../ratelimit.js";
-export default async function protectedRoutes(app) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = protectedRoutes;
+const auth_js_1 = require("../auth.js");
+const ratelimit_js_1 = require("../ratelimit.js");
+async function protectedRoutes(app) {
     app.addHook("preHandler", async (req, reply) => {
-        await authGuard(req, reply);
+        await (0, auth_js_1.authGuard)(req, reply);
         if (reply.sent)
             return; // auth failed
-        await enforceRateLimit(req.apiKeyId);
+        await (0, ratelimit_js_1.enforceRateLimit)(req.apiKeyId);
     });
     app.get("/whoami", async (req, reply) => {
         const rid = req.apiKeyId;

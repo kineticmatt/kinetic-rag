@@ -1,10 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.enforceRateLimit = enforceRateLimit;
 const REDIS_URL = process.env.REDIS_URL;
 const REDIS_TOKEN = process.env.REDIS_TOKEN;
 const MAX_PER_MIN = Number(process.env.RATE_LIMIT_PER_MIN || 600);
 /**
  * Simple per-key per-minute rate limiter using Upstash REST.
  */
-export async function enforceRateLimit(key) {
+async function enforceRateLimit(key) {
     const minute = Math.floor(Date.now() / 60000);
     const k = `rl:${key}:${minute}`;
     // Upstash REST pipeline: INCR + EXPIRE 60s
