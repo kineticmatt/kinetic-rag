@@ -17,9 +17,14 @@ FROM node:20-slim
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=8080
-# copy built app
+
+# Install CA certificates so TLS validation works for Postgres/HTTPS
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+# copy built app from the build stage
 COPY --from=build /app /app
 
-# default command is ignored because we'll define processes in fly.toml
+# default command is ignored by Fly when using [processes]
 CMD ["node","apps/rag-api/dist/server.js"]
 EXPOSE 8080
