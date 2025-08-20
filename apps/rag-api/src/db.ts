@@ -1,4 +1,4 @@
-import { Pool, PoolConfig, QueryResult } from "pg";
+import { Pool, PoolConfig, QueryResult, QueryResultRow } from "pg";
 import dns from "node:dns";
 import { URL } from "node:url";
 
@@ -69,12 +69,16 @@ export async function getPool(): Promise<Pool> {
   return poolSingleton!;
 }
 
-export async function query<T = any>(
+/**
+ * Typed query helper.
+ * Constrains T to QueryResultRow so pg types line up.
+ */
+export async function query<T extends QueryResultRow = QueryResultRow>(
   text: string,
   params?: any[]
 ): Promise<QueryResult<T>> {
   const pool = await getPool();
-  return pool.query(text, params);
+  return pool.query<T>(text, params);
 }
 
 /**
@@ -86,5 +90,4 @@ export async function setSessionVars(tenantId: string, groupsCsv: string) {
   const pool = await getPool();
   await pool.query("select set_config('app.tenant_id', $1, true);", [tenantId]);
   await pool.query("select set_config('app.group_ids', $1, true);", [groupsCsv]);
-}
-                                                                                                                                                                                                    
+}                                                                                                                    
