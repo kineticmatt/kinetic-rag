@@ -29,7 +29,7 @@ async function authGuard(req, reply) {
     const keyId = parseKeyId(apiKey);
     if (!keyId)
         return reply.code(401).send({ error: { code: "BAD_KEY_FORMAT", message: "Malformed API key" } });
-    const { rows } = await db_js_1.pool.query(`select id, tenant_id, key_hash, revoked_at
+    const { rows } = await (0, db_js_1.query)(`select id, tenant_id, key_hash, revoked_at
      from api_keys
      where id = $1`, [keyId]);
     if (rows.length === 0 || rows[0].revoked_at) {

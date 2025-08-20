@@ -3,6 +3,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const node_dns_1 = __importDefault(require("node:dns"));
+node_dns_1.default.setDefaultResultOrder("ipv4first");
 const fastify_1 = __importDefault(require("fastify"));
 const admin_js_1 = __importDefault(require("./routes/admin.js"));
 const protected_js_1 = __importDefault(require("./routes/protected.js"));
