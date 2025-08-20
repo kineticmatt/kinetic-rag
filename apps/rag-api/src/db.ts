@@ -1,9 +1,17 @@
 import { Pool } from "pg";
+import dns from "node:dns";
+
+// Force IPv4 for pg's hostname resolution
+function ipv4Lookup(hostname: string, options: any, callback: any) {
+  dns.lookup(hostname, { family: 4, hints: dns.ADDRCONFIG }, callback);
+}
 
 export const pool = new Pool({
   connectionString: process.env.DB_URL,
-  max: 10,
-  idleTimeoutMillis: 10000
+  // Supabase requires SSL; 'require' matches the URI’s ?sslmode=require
+  ssl: { rejectUnauthorized: false },
+  // Force IPv4 DNS resolution even if AAAA records are present
+  lookup: ipv4Lookup
 });
 
 /**
