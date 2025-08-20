@@ -1,20 +1,18 @@
-import { Pool, PoolConfig } from "pg";
+import { Pool, PoolConfig, QueryResult } from "pg";
 import dns from "node:dns";
 import { URL } from "node:url";
 
 /**
- * Build a Pool that always uses IPv4 (A record) when possible.
+ * Build a Pool that prefers IPv4 to avoid ENETUNREACH on IPv6-only paths.
  * - Parses DB_URL
- * - Resolves hostname to IPv4 with dns.resolve4
- * - If found, constructs a Pool with host=<ipv4>, port, user, password, database
- * - If not found, falls back to the DB_URL (will likely fail with IPv6)
+ * - Resolves hostname to an IPv4 with dns.resolve4
+ * - If found, constructs Pool with host=<ipv4>; otherwise falls back to connectionString
  */
 
 let poolSingleton: Pool | null = null;
 
-// Extend PoolConfig (optional, not strictly needed in this version)
 interface PoolConfigWithLookup extends PoolConfig {
-  // no extra fields here; we’ll pass parsed fields explicitly
+  // no additional fields required; we pass explicit fields when using IPv4 host
 }
 
 function parseDbUrl(dbUrl: string) {
@@ -31,7 +29,7 @@ async function resolveIPv4OrNull(host: string): Promise<string | null> {
   return new Promise((resolve) => {
     dns.resolve4(host, (err, addrs) => {
       if (err || !addrs || addrs.length === 0) return resolve(null);
-      resolve(addrs[0]); // first A record
+      resolve(addrs[0]);
     });
   });
 }
@@ -44,44 +42,49 @@ export async function getPool(): Promise<Pool> {
 
   const { user, password, host, port, database } = parseDbUrl(dbUrl);
 
-  // Try to force IPv4 by resolving an A record and using it as host
   const ipv4 = await resolveIPv4OrNull(host);
 
-  const cfg: PoolConfigWithLookup = ipv4
-    ? {
-        user,
-        password,
-        host: ipv4, // <-- use IPv4 literal
-        port,
-        database,
-        ssl: { rejectUnauthorized: false },
-        max: 10,
-        idleTimeoutMillis: 10000,
-      }
-    : {
-        connectionString: dbUrl, // fallback (may hit IPv6)
-        ssl: { rejectUnauthorized: false },
-        max: 10,
-        idleTimeoutMillis: 10000,
-      };
+  const cfg: PoolConfigWithLookup =
+    ipv4
+      ? {
+          user,
+          password,
+          host: ipv4, // force IPv4 literal
+          port,
+          database,
+          ssl: { rejectUnauthorized: false },
+          max: 10,
+          idleTimeoutMillis: 10000,
+        }
+      : {
+          connectionString: dbUrl, // fallback (may be IPv6 if only AAAA exists)
+          ssl: { rejectUnauthorized: false },
+          max: 10,
+          idleTimeoutMillis: 10000,
+        };
 
-  // one-time boot log for clarity
   console.log("[boot] DB host chosen:", ipv4 ? `${ipv4} (from ${host})` : host);
 
   poolSingleton = new Pool(cfg);
   return poolSingleton!;
 }
 
+export async function query<T = any>(
+  text: string,
+  params?: any[]
+): Promise<QueryResult<T>> {
+  const pool = await getPool();
+  return pool.query(text, params);
+}
+
 /**
- * Helpers that use the singleton pool
+ * Set Postgres session variables for RLS enforcement.
+ * - app.tenant_id  -> UUID string of the current tenant
+ * - app.group_ids  -> CSV of groups (e.g., "project:alpha,team:legal")
  */
 export async function setSessionVars(tenantId: string, groupsCsv: string) {
   const pool = await getPool();
   await pool.query("select set_config('app.tenant_id', $1, true);", [tenantId]);
   await pool.query("select set_config('app.group_ids', $1, true);", [groupsCsv]);
 }
-
-export async function query<T = any>(text: string, params?: any[]): Promise<{ rows: T[] }> {
-  const pool = await getPool();
-  return pool.query(text, params);
-}
+                                                                                                                                                                                                    
