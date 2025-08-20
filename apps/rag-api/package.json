@@ -1,7 +1,7 @@
 {
   "name": "@kinetic/rag-api",
   "private": true,
-  "type": "module",
+  
   "scripts": {
     "start": "node dist/server.js",
     "build": "tsc -p tsconfig.json"
