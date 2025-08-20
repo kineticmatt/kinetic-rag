@@ -1,18 +1,27 @@
-import { Pool } from "pg";
+import { Pool, PoolConfig } from "pg";
 import dns from "node:dns";
 
-// Force IPv4 for pg's hostname resolution
+// Extend PoolConfig to allow a custom lookup function
+interface PoolConfigWithLookup extends PoolConfig {
+  lookup?: (
+    hostname: string,
+    options: any,
+    callback: (err: NodeJS.ErrnoException | null, address: string, family: number) => void
+  ) => void;
+}
+
+// Force IPv4 resolution
 function ipv4Lookup(hostname: string, options: any, callback: any) {
   dns.lookup(hostname, { family: 4, hints: dns.ADDRCONFIG }, callback);
 }
 
-export const pool = new Pool({
+const config: PoolConfigWithLookup = {
   connectionString: process.env.DB_URL,
-  // Supabase requires SSL; 'require' matches the URI’s ?sslmode=require
   ssl: { rejectUnauthorized: false },
-  // Force IPv4 DNS resolution even if AAAA records are present
-  lookup: ipv4Lookup
-});
+  lookup: ipv4Lookup,
+};
+
+export const pool = new Pool(config);
 
 /**
  * Set Postgres session variables for RLS enforcement.
